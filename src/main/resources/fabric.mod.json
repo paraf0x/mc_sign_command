@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "sign-command",
+  "version": "${version}",
+  "name": "Sign Command",
+  "description": "Right-click a sign to execute its text as a chat command.",
+  "authors": ["paraf0x"],
+  "contact": {
+    "sources": "https://github.com/paraf0x/sign-command-mod",
+    "issues": "https://github.com/paraf0x/sign-command-mod/issues"
+  },
+  "icon": "assets/sign-command/icon.png",
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.signcommand.SignCommandMod"
+    ]
+  },
+  "mixins": [
+    "sign-command.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.11"
+  }
+}
