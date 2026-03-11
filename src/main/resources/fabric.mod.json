@@ -6,8 +6,8 @@
   "description": "Right-click a sign to execute its text as a chat command.",
   "authors": ["paraf0x"],
   "contact": {
-    "sources": "https://github.com/paraf0x/sign-command-mod",
-    "issues": "https://github.com/paraf0x/sign-command-mod/issues"
+    "sources": "https://github.com/paraf0x/mc_sign_command",
+    "issues": "https://github.com/paraf0x/mc_sign_command/issues"
   },
   "icon": "assets/sign-command/icon.png",
   "license": "MIT",
