@@ -3,18 +3,18 @@ package dev.signcommand;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.minecraft.block.entity.HangingSignBlockEntity;
-import net.minecraft.block.entity.SignBlockEntity;
-import net.minecraft.block.entity.SignText;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.level.block.entity.HangingSignBlockEntity;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,9 +38,9 @@ public class SignCommandMod implements ClientModInitializer {
 
         // Hover-Preview und Partikel-Effekt
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player == null || client.world == null) return;
+            if (client.player == null || client.level == null) return;
 
-            HitResult hit = client.crosshairTarget;
+            HitResult hit = client.hitResult;
             if (hit == null || hit.getType() != HitResult.Type.BLOCK) return;
 
             BlockHitResult blockHit = (BlockHitResult) hit;
@@ -48,15 +48,15 @@ public class SignCommandMod implements ClientModInitializer {
 
             // Prüfe ob es ein Sign ist
             String command = null;
-            if (client.world.getBlockEntity(pos) instanceof SignBlockEntity sign) {
+            if (client.level.getBlockEntity(pos) instanceof SignBlockEntity sign) {
                 command = extractCommand(sign.getFrontText(), false);
-            } else if (client.world.getBlockEntity(pos) instanceof HangingSignBlockEntity hangingSign) {
+            } else if (client.level.getBlockEntity(pos) instanceof HangingSignBlockEntity hangingSign) {
                 command = extractCommand(hangingSign.getFrontText(), true);
             }
 
             if (command != null) {
                 // Command-Preview in Action Bar
-                client.player.sendMessage(Text.literal("§7[Shift+Click] §f" + command), true);
+                client.player.sendOverlayMessage(Component.literal("§7[Shift+Click] §f" + command));
 
                 // Partikel alle 5 Ticks spawnen
                 tickCounter++;
@@ -69,18 +69,18 @@ public class SignCommandMod implements ClientModInitializer {
 
         // Command-Ausführung bei Shift+Rechtsklick
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-            if (!world.isClient()) return ActionResult.PASS;
+            if (!world.isClientSide()) return InteractionResult.PASS;
 
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client.player == null) return ActionResult.PASS;
+            Minecraft client = Minecraft.getInstance();
+            if (client.player == null) return InteractionResult.PASS;
 
             // Nur bei Shift
-            if (!client.player.isSneaking()) return ActionResult.PASS;
+            if (!client.player.isShiftKeyDown()) return InteractionResult.PASS;
 
             // Cooldown prüfen
             long now = System.currentTimeMillis();
             if (now - lastExecuteTime < COOLDOWN_MS) {
-                return ActionResult.PASS;
+                return InteractionResult.PASS;
             }
 
             // Command extrahieren (normal oder hanging sign)
@@ -95,28 +95,28 @@ public class SignCommandMod implements ClientModInitializer {
 
             // Kein Command gefunden - ignorieren (kein Feedback)
             if (command == null) {
-                return ActionResult.PASS;
+                return InteractionResult.PASS;
             }
 
             // Cooldown setzen
             lastExecuteTime = now;
 
             // Sound abspielen
-            client.world.playSound(
+            client.level.playSound(
                 client.player,
                 pos,
-                SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(),
-                SoundCategory.BLOCKS,
+                SoundEvents.NOTE_BLOCK_PLING.value(),
+                SoundSource.BLOCKS,
                 0.5f,
                 1.2f
             );
 
             // Command ausführen
-            client.player.sendMessage(Text.literal("§a[SignCmd] §f" + command), true);
-            client.player.networkHandler.sendChatCommand(command.substring(1));
+            client.player.sendOverlayMessage(Component.literal("§a[SignCmd] §f" + command));
+            client.player.connection.sendCommand(command.substring(1));
             LOGGER.info("SignCommand executed: '{}'", command);
 
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         });
     }
 
@@ -159,10 +159,10 @@ public class SignCommandMod implements ClientModInitializer {
     }
 
     /**
-     * Spawnt Enchant-Partikel um das Sign herum via ParticleManager
+     * Spawnt Enchant-Partikel um das Sign herum via ParticleEngine
      */
-    private static void spawnParticles(MinecraftClient client, BlockPos pos) {
-        if (client.world == null || client.particleManager == null) return;
+    private static void spawnParticles(Minecraft client, BlockPos pos) {
+        if (client.level == null || client.particleEngine == null) return;
 
         double x = pos.getX() + 0.5;
         double y = pos.getY() + 0.5;
@@ -174,7 +174,7 @@ public class SignCommandMod implements ClientModInitializer {
             double offsetY = (random.nextDouble() - 0.5) * 0.8;
             double offsetZ = (random.nextDouble() - 0.5) * 0.8;
 
-            client.particleManager.addParticle(
+            client.particleEngine.createParticle(
                 ParticleTypes.ENCHANT,
                 x + offsetX,
                 y + offsetY,
