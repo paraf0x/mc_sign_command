@@ -13,6 +13,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.block.entity.HangingSignBlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.slf4j.Logger;
@@ -49,9 +50,9 @@ public class SignCommandMod implements ClientModInitializer {
             // Prüfe ob es ein Sign ist
             String command = null;
             if (client.level.getBlockEntity(pos) instanceof SignBlockEntity sign) {
-                command = extractCommand(sign.getFrontText(), false);
+                command = extractCommand(sign.getText(SignTextSlot.FRONT), false);
             } else if (client.level.getBlockEntity(pos) instanceof HangingSignBlockEntity hangingSign) {
-                command = extractCommand(hangingSign.getFrontText(), true);
+                command = extractCommand(hangingSign.getText(SignTextSlot.FRONT), true);
             }
 
             if (command != null) {
@@ -88,9 +89,9 @@ public class SignCommandMod implements ClientModInitializer {
             BlockPos pos = hitResult.getBlockPos();
 
             if (world.getBlockEntity(pos) instanceof SignBlockEntity sign) {
-                command = extractCommand(sign.getFrontText(), false);
+                command = extractCommand(sign.getText(SignTextSlot.FRONT), false);
             } else if (world.getBlockEntity(pos) instanceof HangingSignBlockEntity hangingSign) {
-                command = extractCommand(hangingSign.getFrontText(), true);
+                command = extractCommand(hangingSign.getText(SignTextSlot.FRONT), true);
             }
 
             // Kein Command gefunden - ignorieren (kein Feedback)
@@ -133,7 +134,7 @@ public class SignCommandMod implements ClientModInitializer {
 
         StringBuilder sb = new StringBuilder();
         for (int i = startLine; i < endLine; i++) {
-            String line = text.getMessage(i, false).getString().trim();
+            String line = text.getMessages(false).get(i).getString().trim();
             line = stripColorCodes(line);
             if (!line.isEmpty()) {
                 if (sb.length() > 0) sb.append(" ");
